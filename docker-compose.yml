@@ -27,15 +27,18 @@ services:
     ports:
       - "5432:5432"
 
-  # service1:
-  #   image: ghcr.io/org/service1:latest
-  #   env_file:
-  #     - envs/service1.env
-  #   depends_on:
-  #     db:
-  #       condition: service_healthy
-  #   networks:
-  #     - iot_hub_net
+  test-microservice:
+    image: ghcr.io/iot-hub-alpha/test-microservice:0.1
+    ports:
+      - "8000:8000"
+    env_file:
+      - envs/test-microservice.env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+    logging: *default-logging
 
 networks:
   iot_hub_net:

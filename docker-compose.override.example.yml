@@ -1,13 +1,14 @@
 services:
-  # service1:
-  #   build:
-  #     context: ../service1
-  #   env_file:
-  #     - ./envs/service1.env
-  #   volumes:
-  #     - ../service1/src:/app/src
-  #   environment:
-  #     - DEBUG=True
-  #   command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-  #   networks:
-  #     - iot_hub_net
+  test-microservice:
+    build:
+      context: ../test-microservice
+    env_file:
+      - ./envs/test-microservice.env
+    volumes:
+      - ../test-microservice/src:/app/src
+    environment:
+      - DEBUG=${DEBUG}
+      - SERVICE_PORT=${SERVICE_PORT:-8000}
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port ${SERVICE_PORT:-8000} 
+    networks:
+      - iot_hub_net
