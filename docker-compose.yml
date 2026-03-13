@@ -1,0 +1,45 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+    ports:
+      - "5432:5432"
+
+  # service1:
+  #   image: ghcr.io/org/service1:latest
+  #   env_file:
+  #     - envs/service1.env
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   networks:
+  #     - iot_hub_net
+
+networks:
+  iot_hub_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
