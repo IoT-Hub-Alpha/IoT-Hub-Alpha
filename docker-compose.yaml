@@ -1,6 +1,6 @@
 services:
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    image: ghcr.io/iot-hub-alpha/kafka-service:v0.1
     container_name: iot_hub_kafka
     restart: unless-stopped
     environment:
@@ -23,7 +23,7 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -108,8 +108,7 @@ services:
       - iot_hub_net
 
   db-writer-worker:
-    build:
-      context: ./services/DB-telemetry-writer
+    image: ghcr.io/iot-hub-alpha/db-writer:v0.1
     container_name: iot_hub_worker
     entrypoint: ["/app/scripts/entrypoint-worker.sh"]
     # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
@@ -129,8 +128,7 @@ services:
 
 
   db-writer:
-    build:
-      context: ./services/DB-telemetry-writer
+    image: ghcr.io/iot-hub-alpha/db-writer:v0.1
     entrypoint: ["/app/scripts/entrypoint-writer.sh"]
     command: ["python", "manage.py", "db_writer"]
     ports:

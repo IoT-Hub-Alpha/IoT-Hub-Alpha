@@ -4,3 +4,6 @@
 [submodule "services/DB-telemetry-writer"]
 	path = services/DB-telemetry-writer
 	url = https://github.com/IoT-Hub-Alpha/DB-Writer-Service
+[submodule "services/Kafka-Service"]
+	path = services/Kafka-Service
+	url = https://github.com/IoT-Hub-Alpha/Kafka-Service
