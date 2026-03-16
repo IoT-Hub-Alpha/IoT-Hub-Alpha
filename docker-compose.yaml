@@ -91,6 +91,7 @@ services:
       - iot_hub_net
     # TODO: add backup/restore strategy for postgres_data
 
+  # TEMPORARY REDIS! PLEASE REMAKE IT AS A DOCKERFILE ACCORDING TO THE TASK!
   redis:
     image: redis:7-alpine
     container_name: iot_hub_redis
