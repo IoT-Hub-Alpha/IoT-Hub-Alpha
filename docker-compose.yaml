@@ -31,33 +31,23 @@ services:
     networks:
       - iot_hub_net
 
-  kafka-init:
+  kafka-admin:
     image: confluentinc/cp-kafka:7.7.1
-    container_name: iot_hub_kafka_init
+    container_name: iot_hub_kafka_admin
     restart: "no"
     depends_on:
       kafka:
         condition: service_healthy
     environment:
-      KAFKA_TOPICS: ${KAFKA_TOPICS:-telemetry.raw,telemetry.clean,telemetry.dlq,event.topic}
-    command: >
-      /bin/sh -c '
-      attempt=1;
-      until kafka-topics --bootstrap-server kafka:9092 --list >/dev/null 2>&1; do
-        if [ "$$attempt" -ge 30 ]; then
-          echo "Kafka broker was not ready after 30 attempts";
-          exit 1;
-        fi;
-        echo "Waiting for Kafka broker... attempt $$attempt/30";
-        attempt=$$((attempt + 1));
-        sleep 2;
-      done;
-      for topic in $$(echo "$$KAFKA_TOPICS" | tr "," " "); do
-        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1;
-      done;
-      echo "Kafka topics ready:";
-      kafka-topics --bootstrap-server kafka:9092 --list;
-      '
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KAFKA_ADMIN_ACTION: create
+      KAFKA_TOPICS: telemetry.raw,telemetry.clean,telemetry.dlq,event.topic
+      KAFKA_PARTITIONS: 3
+      KAFKA_REPLICATION_FACTOR: 1
+      KAFKA_TOPIC_CONFIGS: cleanup.policy=delete,retention.ms=604800000
+    command: ["/bin/sh", "/scripts/kafka-admin.sh"]
+    volumes:
+      - ./scripts/kafka-admin.sh:/scripts/kafka-admin.sh:ro
     networks:
       - iot_hub_net
 
