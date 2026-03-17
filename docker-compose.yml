@@ -28,6 +28,9 @@ services:
       - "9094:9094"
     volumes:
       - kafka_data:/var/lib/kafka/data
+    env_file:
+      - envs/kafka.env
+      - .env
     healthcheck:
       test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
       interval: 10s
@@ -127,6 +130,7 @@ services:
     command: celery -A db_writer worker -l info --pool=solo
     env_file:
       - envs/db-writer.env
+      - envs/kafka.env
       - .env
     depends_on:
       - redis
@@ -145,6 +149,7 @@ services:
       - "8033:8033"
     env_file:
       - envs/db-writer.env
+      - envs/kafka.env
       - .env
     depends_on:
       - telemetry-db  
