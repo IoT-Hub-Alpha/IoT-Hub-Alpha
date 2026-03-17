@@ -85,8 +85,8 @@ services:
       test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 20s
+      retries: 20
+      start_period: 60s
     networks:
       - iot_hub_net
     # TODO: add backup/restore strategy for postgres_data
@@ -109,7 +109,7 @@ services:
       - iot_hub_net
 
   db-writer-worker:
-    image: ghcr.io/iot-hub-alpha/db-writer:v0.1
+    image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
     container_name: iot_hub_worker
     entrypoint: ["/app/scripts/entrypoint-worker.sh"]
     # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
@@ -129,7 +129,7 @@ services:
 
 
   db-writer:
-    image: ghcr.io/iot-hub-alpha/db-writer:v0.1
+    image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
     entrypoint: ["/app/scripts/entrypoint-writer.sh"]
     command: ["python", "manage.py", "db_writer"]
     ports:
