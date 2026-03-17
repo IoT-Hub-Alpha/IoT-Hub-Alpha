@@ -18,7 +18,15 @@ htmlcov/
 
 # Environment
 .env
-*.env
+envs/*.env
+!envs/*.env.example
 
 # OS
 .DS_Store
+
+# Docker
+docker-compose.override.yml
+
+# Security & Cerificates
+*.pem
+*key.pem

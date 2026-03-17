@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$TELEMETRY_POSTGRES_USER" --dbname "$TELEMETRY_POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     -- Enable TimescaleDB extension
     CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
     
