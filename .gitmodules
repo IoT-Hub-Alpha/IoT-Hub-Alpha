@@ -1,3 +1,6 @@
 [submodule "libs/IoTKafkaUtils"]
 	path = libs/IoTKafkaUtils
 	url = https://github.com/IoT-Hub-Alpha/kafka-consumer-producer-lib
+[submodule "services/kafka_service"]
+	path = services/kafka_service
+	url = https://github.com/IoT-Hub-Alpha/Kafka-Service
