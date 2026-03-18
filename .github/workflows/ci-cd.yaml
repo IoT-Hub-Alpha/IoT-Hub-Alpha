@@ -1,0 +1,40 @@
+name: CI/CD Umbrella
+
+on:
+  repository_dispatch:
+    types: [update-microservice]
+  push:
+    branches: [main]
+    paths:
+      - 'docker-compose.yml'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Docker Compose
+        run: docker compose config -q
+
+  update-service:
+    needs: lint
+    if: github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.UMBRELLA_PAT }}
+
+      - name: Update Image Tag
+        run: |
+          SERVICE="${{ github.event.client_payload.service_name }}"
+          TAG="${{ github.event.client_payload.new_tag }}"
+          sed -i "/image:.*$SERVICE/s/:[^:]*$/:$TAG/" docker-compose.yml
+
+      - name: Commit & Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docker-compose.yml
+          git commit -m "auto: update $SERVICE to $TAG" || echo "Nothing to commit"
+          git push
