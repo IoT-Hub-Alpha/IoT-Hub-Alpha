@@ -40,6 +40,18 @@ services:
       - iot_hub_net
     logging: *default-logging
 
+  telemetry-validator:
+    image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
+    restart: unless-stopped
+    env_file:
+      - envs/telemetry-validator.env
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+
 networks:
   iot_hub_net:
     driver: bridge
