@@ -168,6 +168,20 @@ services:
     networks:
       - iot_hub_net
 
+  api-telemetry:
+    build:
+      context: ../API-Telemetry
+    ports:
+      - "8014:8014"
+    env_file:
+      - envs/api_telemetry.env
+      - .env
+    depends_on:
+      - telemetry-db  
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+
 networks:
   iot_hub_net:
     name: iot_hub_net
