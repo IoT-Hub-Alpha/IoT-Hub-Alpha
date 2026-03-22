@@ -158,8 +158,7 @@ services:
       - iot_hub_net
 
   scala-aggregation-service:
-    build:
-      context: ../Scala-Agg-Service
+    image: ghcr.io/iot-hub-alpha/scala-agg-service:latest@sha256:bf0620f2d6b76a5e0d0b1ef4a3a915a2590e01888667204f5e1508c6be5f4a11
     expose:
       - "8081"
     env_file:
@@ -169,8 +168,7 @@ services:
       - iot_hub_net
 
   api-telemetry:
-    build:
-      context: ../API-Telemetry
+    image: ghcr.io/iot-hub-alpha/api-telemetry:latest@sha256:1341ca555fd08a1d67ba58a9eb810e7e8abcf327d975b1494676830dfe28a881
     ports:
       - "8014:8014"
     env_file:
