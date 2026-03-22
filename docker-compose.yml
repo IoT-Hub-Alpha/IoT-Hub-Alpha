@@ -58,9 +58,10 @@ services:
     command: ["/bin/sh", "/scripts/kafka-admin.sh"]
     volumes:
       - ./scripts/kafka-admin.sh:/scripts/kafka-admin.sh:ro
+    env_file:
+      - ./envs/kafka.env
     networks:
       - iot_hub_net
-    logging: *default-logging
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
@@ -152,14 +153,13 @@ services:
       - envs/kafka.env
       - .env
     depends_on:
-      - telemetry-db  
+      - telemetry-db
     networks:
       - iot_hub_net
-    logging: *default-logging
 
 networks:
   iot_hub_net:
-    driver: bridge
+    name: iot_hub_net
 
 volumes:
   kafka_data:
