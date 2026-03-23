@@ -1,31 +1,37 @@
-x-logging: &default-logging
-  driver: "json-file"
-  options:
-    max-size: "10m"
-    max-file: "3"
-
 services:
-  db:
-    image: timescale/timescaledb:latest-pg15
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: iot_hub_kafka
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    ports:
+      - "9094:9094"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - kafka_data:/var/lib/kafka/data
+    env_file:
+      - ./envs/kafka.env
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 20
+      start_period: 20s
     networks:
       - iot_hub_net
-    logging: *default-logging
-    ports:
-      - "5432:5432"
 
   mosquitto:
     build:
@@ -67,14 +73,60 @@ services:
       retries: 3
       start_period: 10s
     logging: *default-logging
+  kafka-admin:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: iot_hub_kafka_admin
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP_SERVER: kafka:9092
+      KAFKA_ADMIN_ACTION: create
+      KAFKA_TOPICS: telemetry.raw,telemetry.clean,telemetry.dlq,event.topic
+      KAFKA_PARTITIONS: 3
+      KAFKA_REPLICATION_FACTOR: 1
+      KAFKA_TOPIC_CONFIGS: cleanup.policy=delete,retention.ms=604800000
+    command: ["/bin/sh", "/scripts/kafka-admin.sh"]
+    volumes:
+      - ./scripts/kafka-admin.sh:/scripts/kafka-admin.sh:ro
+    env_file:
+      - ./envs/kafka.env
+    networks:
+      - iot_hub_net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: iot_hub_kafka_ui
+    restart: unless-stopped
+    profiles: ["kafka-ui"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./envs/kafka.env
+    networks:
+      - iot_hub_net
+
+  telemetry-validator:
+    image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
+    restart: unless-stopped
+    env_file:
+      - envs/telemetry-validator.env
     networks:
       - iot_hub_net
 
 networks:
   iot_hub_net:
-    driver: bridge
+    name: iot_hub_net
 
 volumes:
   postgres_data:
   mosquitto_data:
   mosquitto_log:
+  kafka_data:
