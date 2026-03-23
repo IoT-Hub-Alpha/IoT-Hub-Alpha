@@ -33,12 +33,23 @@ services:
     networks:
       - iot_hub_net
 
+  redis-service:
+    image: ghcr.io/iot-hub-alpha/redis-service:latest
+    restart: unless-stopped
+    env_file:
+      - envs/redis-service.env
+    volumes:
+      - redis_data:/var/lib/redis
+    networks:
+      - iot_hub_net
+
   mosquitto:
     build:
       context: ./devops/mosquitto
       dockerfile: Dockerfile
     container_name: iot_hub_mosquitto
     restart: unless-stopped
+
     ports:
       - "${MQTT_BROKER_PORT:-1883}:1883"
     volumes:
@@ -130,3 +141,4 @@ volumes:
   mosquitto_data:
   mosquitto_log:
   kafka_data:
+  redis_data:

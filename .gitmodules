@@ -1,5 +1,5 @@
-[submodule "mqtt-ingest"]
-	path = mqtt-ingest
+[submodule "services/mqtt-ingest"]
+	path = services/mqtt-ingest
 	url = https://github.com/IoT-Hub-Alpha/mqtt-ingest
 [submodule "libs/IoTKafkaUtils"]
 	path = libs/IoTKafkaUtils
