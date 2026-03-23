@@ -33,6 +33,46 @@ services:
     networks:
       - iot_hub_net
 
+  mosquitto:
+    build:
+      context: ./devops/mosquitto
+      dockerfile: Dockerfile
+    container_name: iot_hub_mosquitto
+    restart: unless-stopped
+    ports:
+      - "${MQTT_BROKER_PORT:-1883}:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  mqtt-ingest:
+    image: ghcr.io/iot-hub-alpha/mqtt-ingest:1.0
+    container_name: iot_hub_mqtt_ingest
+    restart: unless-stopped
+    env_file:
+      - envs/mqtt.env
+    ports:
+      - "8011:8000"
+    expose:
+      - "9103"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
   kafka-admin:
     image: confluentinc/cp-kafka:7.7.1
     container_name: iot_hub_kafka_admin
@@ -80,11 +120,13 @@ services:
       - envs/telemetry-validator.env
     networks:
       - iot_hub_net
-    logging: *default-logging
 
 networks:
   iot_hub_net:
     name: iot_hub_net
 
 volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_log:
   kafka_data:
