@@ -1,0 +1,60 @@
+from pathlib import Path
+import sys
+from typing import Any
+from time import perf_counter
+from .data_structures import ParsedArgs, Config
+from .helpers import get_data_from_demos
+from .senders import HttpSender, MqttPublisher
+from .runner import run_loop
+from .reporting import Reporter
+
+
+def main_sim(raw: Any, config: Config) -> None:
+    """
+    Main program flow
+
+    :param raw: Description
+    :type raw: Any
+    """
+    prog_start = perf_counter()
+    parsed_data = ParsedArgs.model_validate(vars(raw))
+
+    if parsed_data.devices:
+        tasks = parsed_data.devices
+    elif parsed_data.files:
+        tasks = get_data_from_demos(parsed_data.files)
+    else:
+        raise ValueError("Malformed file/device configuration, check JSON.")
+
+    if parsed_data.mode.lower() == "http":
+
+        sender = HttpSender(base_url=parsed_data.url, timeout=raw.default_timeout)
+    elif parsed_data.mode.lower() == "mqtt":
+        sender = MqttPublisher(topic=config.mqtt_topic, mqtt_sleep=raw.mqqt_sleep)
+    else:
+        raise ValueError("Mode not recognized")
+
+    if parsed_data.log:
+        parent_path = (
+            Path(__file__).resolve().parent.parent if parsed_data.log else None
+        )
+        log_path = Path(f"{parent_path}/{parsed_data.log_file}")
+    else:
+        log_path = None
+
+    reporter = Reporter(verbose=parsed_data.verbose, log_path=log_path)
+
+    stats = run_loop(
+        config=config,
+        mode=raw.mode,
+        tasks=tasks,
+        sender=sender,
+        reporter=reporter,
+        rate=parsed_data.rate,
+        count=parsed_data.count,
+    )
+    total_run_time = perf_counter() - prog_start
+    reporter.end_report(stats, total_run_time)
+
+    if stats.errors or stats.failed:
+        sys.exit(1)
