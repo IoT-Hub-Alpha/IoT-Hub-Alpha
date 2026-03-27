@@ -1,14 +1,19 @@
 services:
-  test-microservice:
+
+  telemetry-validator:
     build:
-      context: ../test-microservice
+      context: ../Telemetry-Validator-Service
     env_file:
-      - ./envs/test-microservice.env
+      - ./envs/telemetry-validator.env
     volumes:
-      - ../test-microservice/src:/app/src
+      - ../Telemetry-Validator-Service/app:/app
     environment:
-      - DEBUG=${DEBUG}
-      - SERVICE_PORT=${SERVICE_PORT:-8000}
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port ${SERVICE_PORT:-8000} 
+      - VALIDATOR_DEBUG=true
     networks:
       - iot_hub_net
+
+  redis-service:
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=local_dev_password

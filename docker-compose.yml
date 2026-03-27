@@ -41,6 +41,60 @@ services:
       - iot_hub_net
     logging: *default-logging
 
+  redis:
+    image: ghcr.io/iot-hub-alpha/redis-service:latest
+    restart: unless-stopped
+    env_file:
+      - envs/redis-service.env
+    volumes:
+      - redis_data:/var/lib/redis
+    networks:
+      - iot_hub_net
+
+  mosquitto:
+    build:
+      context: ./devops/mosquitto
+      dockerfile: Dockerfile
+    container_name: iot_hub_mosquitto
+    restart: unless-stopped
+
+    ports:
+      - "${MQTT_BROKER_PORT:-1883}:1883"
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - iot_hub_net
+
+  mqtt-ingest:
+    image: ghcr.io/iot-hub-alpha/mqtt-ingest:1.0
+    container_name: iot_hub_mqtt_ingest
+    restart: unless-stopped
+    env_file:
+      - envs/mqtt.env
+    ports:
+      - "8011:8000"
+    expose:
+      - "9103"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+
   kafka-admin:
     image: confluentinc/cp-kafka:7.7.1
     container_name: iot_hub_kafka_admin
@@ -105,26 +159,10 @@ services:
     logging: *default-logging
     # TODO: add backup/restore strategy for postgres_data
 
-  # TEMPORARY REDIS! PLEASE REMAKE IT AS A DOCKERFILE ACCORDING TO THE TASK!
-  redis:
-    image: redis:7-alpine
-    container_name: iot_hub_redis
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 1s
-      timeout: 3s
-      retries: 30
-      start_period: 5s
-    # TODO: configure redis auth, persistence, and memory policy
-    volumes:
-      - redis_data:/data
-    networks:
-      - iot_hub_net
-    logging: *default-logging
-
   db-writer-worker:
-    image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
+    #image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
+    build:
+      context: ../DB-Writer-Service
     container_name: iot_hub_worker
     entrypoint: ["/app/scripts/entrypoint-worker.sh"]
     # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
@@ -132,6 +170,7 @@ services:
     env_file:
       - envs/db-writer.env
       - envs/kafka.env
+      - envs/redis-service.env
       - .env
     depends_on:
       - redis
@@ -143,7 +182,9 @@ services:
 
 
   db-writer:
-    image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
+    #image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
+    build:
+      context: ../DB-Writer-Service
     entrypoint: ["/app/scripts/entrypoint-writer.sh"]
     command: ["python", "manage.py", "db_writer"]
     ports:
@@ -151,9 +192,22 @@ services:
     env_file:
       - envs/db-writer.env
       - envs/kafka.env
+      - envs/redis-service.env
       - .env
     depends_on:
       - telemetry-db
+    networks:
+      - iot_hub_net
+
+  telemetry-validator:
+    image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
+    # build:
+    #   context: ../Telemetry-Validator-Service
+    command: ["python", "manage.py", "run_validator"]
+    restart: unless-stopped
+    env_file:
+      - envs/telemetry-validator.env
+      - envs/kafka.env
     networks:
       - iot_hub_net
 
@@ -162,6 +216,8 @@ networks:
     name: iot_hub_net
 
 volumes:
+  postgres_data:
+  mosquitto_data:
+  mosquitto_log:
   kafka_data:
   redis_data:
-  postgres_data:
