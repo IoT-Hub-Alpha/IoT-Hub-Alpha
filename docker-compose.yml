@@ -139,7 +139,7 @@ services:
     container_name: iot_hub_telemetry_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${TELEMETRY_DB_NAME:-iot_hub_alpha_db}
+      POSTGRES_DB: ${TELEMETRY_DB_NAME:-iot_hub_telemetry_db}
       POSTGRES_USER: ${TELEMETRY_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${TELEMETRY_DB_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
@@ -160,9 +160,7 @@ services:
     # TODO: add backup/restore strategy for postgres_data
 
   db-writer-worker:
-    #image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
-    build:
-      context: ../DB-Writer-Service
+    image: ghcr.io/iot-hub-alpha/db-writer:latest
     container_name: iot_hub_worker
     entrypoint: ["/app/scripts/entrypoint-worker.sh"]
     # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
@@ -182,9 +180,7 @@ services:
 
 
   db-writer:
-    #image: ghcr.io/iot-hub-alpha/db-writer:v0.3@sha256:a6025a49e79f9b886b7983836c4153c11e3641c0aec20b4f1e5474eae51637a2
-    build:
-      context: ../DB-Writer-Service
+    image: ghcr.io/iot-hub-alpha/db-writer:latest
     entrypoint: ["/app/scripts/entrypoint-writer.sh"]
     command: ["python", "manage.py", "db_writer"]
     ports:
@@ -201,13 +197,12 @@ services:
 
   telemetry-validator:
     image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
-    # build:
-    #   context: ../Telemetry-Validator-Service
     command: ["python", "manage.py", "run_validator"]
     restart: unless-stopped
     env_file:
       - envs/telemetry-validator.env
       - envs/kafka.env
+      - .env
     networks:
       - iot_hub_net
 
