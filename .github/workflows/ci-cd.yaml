@@ -13,6 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Mock .env files for validation 
+        run: |
+          mkdir -p envs
+          touch envs/api-gateway.env
+          touch envs/db-writer.env
+          touch envs/http-ingest.env
+          touch envs/kafka.env
+          touch envs/mqtt.env
+          touch envs/redis-service.env
+          touch envs/telemetry.env 
       - name: Validate Docker Compose
         run: docker compose config -q
 
