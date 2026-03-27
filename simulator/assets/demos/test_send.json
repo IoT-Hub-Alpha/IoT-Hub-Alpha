@@ -1,0 +1,47 @@
+[
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 5000
+      },
+      "expected": 202
+    },
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 6000
+      },
+      "expected": 202
+    },
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 7000
+      },
+      "expected": 202
+    },
+    {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 8000
+      },
+      "expected": 202
+    },
+        {
+      "name": "device1",
+      "data": {
+        "schema_version": "1.0",
+        "ssn": "TEMP-SN-002",
+        "value": 9000
+      },
+      "expected": 202
+    }
+  ]

@@ -1,6 +1,12 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   kafka:
-    image: confluentinc/cp-kafka:7.7.1
+    image: ghcr.io/iot-hub-alpha/kafka-service:v0.1
     container_name: iot_hub_kafka
     restart: unless-stopped
     environment:
@@ -23,17 +29,19 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
     env_file:
-      - ./envs/kafka.env
+      - envs/kafka.env
+      - .env
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"]
       interval: 10s
       timeout: 5s
       retries: 20
       start_period: 20s
     networks:
       - iot_hub_net
+    logging: *default-logging
 
-  redis-service:
+  redis:
     image: ghcr.io/iot-hub-alpha/redis-service:latest
     restart: unless-stopped
     env_file:
@@ -82,6 +90,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - iot_hub_net
+    logging: *default-logging
 
   kafka-admin:
     image: confluentinc/cp-kafka:7.7.1
@@ -118,16 +129,79 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     ports:
       - "8080:8080"
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+
+  telemetry-db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: iot_hub_telemetry_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TELEMETRY_DB_NAME:-iot_hub_telemetry_db}
+      POSTGRES_USER: ${TELEMETRY_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${TELEMETRY_DB_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-telem-db.sh:/docker-entrypoint-initdb.d/init-telem-db.sh
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $${POSTGRES_USER} -d $${POSTGRES_DB} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+    # TODO: add backup/restore strategy for postgres_data
+
+  db-writer-worker:
+    image: ghcr.io/iot-hub-alpha/db-writer:latest
+    container_name: iot_hub_worker
+    entrypoint: ["/app/scripts/entrypoint-worker.sh"]
+    # Use --pool=gevent for I/O-bound tasks or --pool=prefork for CPU-bound tasks.
+    command: celery -A db_writer worker -l info --pool=solo
     env_file:
-      - ./envs/kafka.env
+      - envs/db-writer.env
+      - envs/kafka.env
+      - envs/redis-service.env
+      - .env
+    depends_on:
+      - redis
+      - telemetry-db  
+    networks:
+      - iot_hub_net
+    logging: *default-logging
+    # TODO: add celery config and queues
+
+
+  db-writer:
+    image: ghcr.io/iot-hub-alpha/db-writer:latest
+    entrypoint: ["/app/scripts/entrypoint-writer.sh"]
+    command: ["python", "manage.py", "db_writer"]
+    ports:
+      - "8033:8033"
+    env_file:
+      - envs/db-writer.env
+      - envs/kafka.env
+      - envs/redis-service.env
+      - .env
+    depends_on:
+      - telemetry-db
     networks:
       - iot_hub_net
 
   telemetry-validator:
     image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
+    command: ["python", "manage.py", "run_validator"]
     restart: unless-stopped
     env_file:
       - envs/telemetry-validator.env
+      - envs/kafka.env
+      - .env
     networks:
       - iot_hub_net
 

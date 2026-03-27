@@ -6,7 +6,25 @@ Main umbrella repository for IoT-Hub microservices platform.
 
 - [Microservices Repository Structure](docs/microservices-repository-structure.md)
 
-Main umbrella repo
+
+## Envs
+`/scripts/refresh.sh`
+This script will refresh all envs both in root (`.env`) and in `/envs/`.
+
+it will read *.env.example and create(or override) the corresponding .env file.
+
+Please make sure to run this script after each main repo update to have the latest .env vars
+
+## Simulator
+simulator is located at `/simulator/`, please install its `requirements.txt` at `/simulator/requirements.txt`
+
+Simulator works the same way as before, example usage:
+```
+python -m simulator.run -d device1 -v -m mqtt
+```
+from root directory.
+
+## Main umbrella repo
 
 Login through GitHub Access Token
 ```bash
