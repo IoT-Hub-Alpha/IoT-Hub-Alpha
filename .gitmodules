@@ -10,3 +10,6 @@
 [submodule "services/Kafka-Service"]
 	path = services/Kafka-Service
 	url = https://github.com/IoT-Hub-Alpha/Kafka-Service
+[submodule "services/postgres-service"]
+	path = services/postgres-service
+	url = https://github.com/IoT-Hub-Alpha/PostgreSql
