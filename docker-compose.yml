@@ -68,7 +68,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    logging: *default-logging
     networks:
       - iot_hub_net
 
@@ -91,9 +90,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    networks:
-      - iot_hub_net
-    logging: *default-logging
 
   kafka-admin:
     image: confluentinc/cp-kafka:7.7.1
@@ -206,6 +202,24 @@ services:
     networks:
       - iot_hub_net
 
+  http-ingest:
+    image: ghcr.io/iot-hub-alpha/http-ingest:latest
+    env_file:
+      - envs/http-ingest.env
+    container_name: iot_http_ingest
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092 
+      - KAFKA_TOPIC_TELEMETRY_RAW=telemetry.raw
+      - UVICORN_WORKERS=4
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - iot_hub_net
+      
 networks:
   iot_hub_net:
     name: iot_hub_net

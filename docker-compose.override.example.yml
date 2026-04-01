@@ -17,3 +17,7 @@ services:
       - "6379:6379"
     environment:
       - REDIS_PASSWORD=local_dev_password
+
+  http-ingest:
+      volumes:
+        - ../http-ingest-microservice:/app
