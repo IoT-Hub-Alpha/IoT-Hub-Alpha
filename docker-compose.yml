@@ -50,6 +50,27 @@ services:
       - redis_data:/var/lib/redis
     networks:
       - iot_hub_net
+  db:
+    image: ghcr.io/iot-hub-alpha/postgresql:0.1
+    container_name: iot_hub_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-iot_hub_alpha_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 5432 -U $${POSTGRES_USER} -d postgres || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - iot_hub_net
+
 
   mosquitto:
     build:
@@ -216,3 +237,4 @@ volumes:
   mosquitto_log:
   kafka_data:
   redis_data:
+  
