@@ -193,6 +193,7 @@ services:
 
   telemetry-validator:
     image: ghcr.io/iot-hub-alpha/telemetry-validator-service:v0.1
+    platform: linux/amd64
     command: ["python", "manage.py", "run_validator"]
     restart: unless-stopped
     env_file:
