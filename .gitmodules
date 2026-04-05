@@ -10,3 +10,6 @@
 [submodule "services/Kafka-Service"]
 	path = services/Kafka-Service
 	url = https://github.com/IoT-Hub-Alpha/Kafka-Service
+[submodule "services/notification-api"]
+	path = services/notification-api
+	url = https://github.com/IoT-Hub-Alpha/notification-api
